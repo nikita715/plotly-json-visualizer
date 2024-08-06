@@ -1,5 +1,9 @@
 <h1>Plotly JSON visualizer</h1>
-Online visualizer of <a href="https://plotly.com/javascript/">Plotly.js</a> graphs in <a href="https://plotly.com/chart-studio-help/json-chart-schema/">Plotly JSON visualization schema format</a>. Available at https://nikita715.github.io/plotly-json-visualizer
+Online visualizer of <a href="https://plotly.com/javascript/">Plotly.js</a> graphs in <a href="https://plotly.com/chart-studio-help/json-chart-schema/">Plotly JSON visualization schema format</a>.
+
+<br />
+<br />
+Available at https://nikita715.github.io/plotly-json-visualizer
 
 <h2>Usage</h2>
 Plotly JSON can be provided in several ways:

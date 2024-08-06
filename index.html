@@ -5,73 +5,162 @@
     <title>Plotly</title>
     <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
-    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
     <script src="https://cdn.plot.ly/plotly-2.32.0.min.js"></script>
     <style>
         body {
-            display: flex;
             height: 100vh;
             margin: 0;
             overflow: hidden;
             font-family: Arial, sans-serif;
-        }
-
-        #sidebar {
-            width: 300px;
-            padding: 15px;
-            background-color: #f8f9fa;
-            overflow-y: auto;
-            flex-shrink: 0;
+            position: relative;
         }
 
         .box {
             width: 300px;
-            height: 200px;
+            height: 300px;
             background-color: #fff;
-            border: 1px solid dodgerblue;
+            border: 1px solid lightblue;
             border-radius: 5px;
             box-shadow: 0 15px 15px lightgrey;
+            position: absolute;
+            top: 50px;
+            left: 50px;
+            resize: both;
+            overflow: hidden;
+            z-index: 0;
         }
 
         .box-header {
             color: #fff;
-            background-color: dodgerblue;
-            padding: 10px 15px;
-        }
-
-        .drag-handle {
-            cursor: pointer;
-        }
-
-        .box-header {
-            color: #fff;
-            background-color: dodgerblue;
             padding: 5px 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            height: 40px;
+            flex-shrink: 0;
+        }
+
+        .header-buttons {
+            display: flex;
+            gap: 5px;
+            flex-shrink: 0;
+        }
+
+        .box-body {
+            height: calc(100% - 40px);
+            padding: 10px;
+            overflow: auto;
+            background-color: lightblue;
+        }
+
+        .btn {
+            border: 1px solid #ccc;
+            padding: 5px 10px;
+            background-color: white;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+
+        .btn:hover {
+            background-color: #f0f0f0;
+        }
+
+        #add-box-btn {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            cursor: pointer;
+            z-index: 1000;
+            color: lightblue;
+        }
+
+        #add-box-btn:hover {
+            color: lightskyblue;
+        }
+
+        #overlay-text {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 24px;
+            color: rgba(0, 0, 0, 0.5);
+            pointer-events: none;
+            z-index: -1000;
         }
     </style>
 </head>
 <body>
-<div id="sidebar">
-    <h1>Plotly JSON Visualizer</h1>
-    <div>
-        <label for="json-input">JSON Data:</label><br>
-        <textarea id="json-input" class="form-control" rows="10"></textarea><br>
-        <label for="json-path">JSON Path (optional):</label><br>
-        <input type="text" id="json-path" class="form-control" placeholder="e.g., data.chart"><br><br>
-        <button onclick="reloadPlot()" class="btn btn-success">Reload Plot</button>
-    </div>
-</div>
-<div class="box" data-draggable="true" data-resizable="true">
-    <div class="box-header drag-handle" data-drag-handle="true">Drag here</div>
-    <div class="box-body" id="div-plotly"></div>
-</div>
+<i id="add-box-btn" class="fas fa-plus-circle fa-2x"></i>
+<div id="overlay-text">Plotly JSON Visualizer</div>
 
 <script>
-    const plotDiv = document.getElementById('div-plotly');
+    document.getElementById('add-box-btn').addEventListener('click', addNewBox);
 
-    function reloadPlot() {
-        const jsonData = document.getElementById('json-input').value;
-        const jsonPath = document.getElementById('json-path').value;
+    function addNewBox() {
+        const box = document.createElement('div');
+        box.className = 'box';
+        box.innerHTML = `
+            <div class="box-header" data-drag-handle="true">
+                <div class="header-buttons">
+                    <button class="btn btn-generate">Generate</button>
+                    <button class="btn btn-back" style="display:none;">Back</button>
+                </div>
+                <span class="btn btn-close">X</span>
+            </div>
+            <div class="box-body">
+                <div class="view-json">
+                    <label for="json-input">JSON Data:</label><br>
+                    <textarea class="json-input form-control" rows="10"></textarea><br>
+                    <button class="btn btn-beautify">Beautify JSON</button><br><br>
+                    <label for="json-path">JSON Path (optional):</label><br>
+                    <input type="text" class="json-path form-control" placeholder="e.g., data.chart"><br><br>
+                </div>
+                <div class="view-chart" style="display:none;">
+                    <div class="chart" style="width: 100%; height: 100%;"></div>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(box);
+
+        setupDraggable(box);
+        setupResizable(box);
+        setupZIndex(box);
+
+        box.querySelector('.btn-generate').addEventListener('click', () => reloadPlot(box));
+        box.querySelector('.btn-back').addEventListener('click', () => switchToJson(box));
+        box.querySelector('.btn-close').addEventListener('click', () => box.remove());
+        box.querySelector('.btn-beautify').addEventListener('click', () => beautifyJson(box));
+    }
+
+    function switchToChart(box) {
+        const viewJson = box.querySelector('.view-json');
+        const viewChart = box.querySelector('.view-chart');
+        const btnGenerate = box.querySelector('.btn-generate');
+        const btnBack = box.querySelector('.btn-back');
+        viewJson.style.display = 'none';
+        viewChart.style.display = 'block';
+        btnGenerate.style.display = 'none';
+        btnBack.style.display = 'block';
+        updatePlotSize(box);
+    }
+
+    function switchToJson(box) {
+        const viewJson = box.querySelector('.view-json');
+        const viewChart = box.querySelector('.view-chart');
+        const btnGenerate = box.querySelector('.btn-generate');
+        const btnBack = box.querySelector('.btn-back');
+        viewJson.style.display = 'block';
+        viewChart.style.display = 'none';
+        btnGenerate.style.display = 'block';
+        btnBack.style.display = 'none';
+    }
+
+    function reloadPlot(box) {
+        const jsonData = box.querySelector('.json-input').value;
+        const jsonPath = box.querySelector('.json-path').value;
 
         try {
             let plotData = JSON.parse(jsonData);
@@ -92,71 +181,89 @@
                 responsive: true
             };
 
+            const plotDiv = box.querySelector('.chart');
             Plotly.newPlot(plotDiv, plotData, layout, config);
+
+            switchToChart(box);  // Switch to chart view immediately after generating the plot
         } catch (error) {
             console.error('Error:', error);
             alert('Invalid JSON data or JSON path');
         }
     }
 
-    let dragEl;
-    let dragHandleEl
-    const lastPosition = {};
+    function beautifyJson(box) {
+        const jsonInput = box.querySelector('.json-input');
+        try {
+            const jsonData = JSON.parse(jsonInput.value);
+            jsonInput.value = JSON.stringify(jsonData, null, 4);
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Invalid JSON data');
+        }
+    }
 
-    setupResizable();
-    setupDraggable();
+    function setupDraggable(box) {
+        const dragHandleEl = box.querySelector('[data-drag-handle]');
+        let dragEl;
+        let lastPosition = {};
 
-    function setupDraggable() {
-        dragHandleEl = document.querySelector('[data-drag-handle]');
         dragHandleEl.addEventListener('mousedown', dragStart);
         dragHandleEl.addEventListener('mouseup', dragEnd);
         dragHandleEl.addEventListener('mouseout', dragEnd);
+
+        function dragStart(event) {
+            dragEl = box;
+            dragEl.style.setProperty('position', 'absolute');
+            lastPosition.left = event.clientX;
+            lastPosition.top = event.clientY;
+            dragHandleEl.classList.add('dragging');
+            dragHandleEl.addEventListener('mousemove', dragMove);
+        }
+
+        function dragMove(event) {
+            const dragElRect = dragEl.getBoundingClientRect();
+            const newLeft = dragElRect.left + event.clientX - lastPosition.left;
+            const newTop = dragElRect.top + event.clientY - lastPosition.top;
+            dragEl.style.setProperty('left', `${newLeft}px`);
+            dragEl.style.setProperty('top', `${newTop}px`);
+            lastPosition.left = event.clientX;
+            lastPosition.top = event.clientY;
+            window.getSelection().removeAllRanges();
+            updatePlotSize(box);
+        }
+
+        function dragEnd() {
+            dragHandleEl.classList.remove('dragging');
+            dragHandleEl.removeEventListener('mousemove', dragMove);
+            dragEl = null;
+        }
     }
 
-    function setupResizable() {
-        const resizeEl = document.querySelector('[data-resizable]');
-        resizeEl.style.setProperty('resize', 'both');
-        resizeEl.style.setProperty('overflow', 'hidden');
+    function setupResizable(box) {
+        box.style.setProperty('resize', 'both');
+        box.style.setProperty('overflow', 'hidden');
+
         new ResizeObserver(() => {
-            updatePlotSize();
-        }).observe(resizeEl);
+            updatePlotSize(box);
+        }).observe(box);
     }
 
-    function dragStart(event) {
-        dragEl = getDraggableAncestor(event.target);
-        dragEl.style.setProperty('position', 'absolute');
-        lastPosition.left = event.target.clientX;
-        lastPosition.top = event.target.clientY;
-        dragHandleEl.classList.add('dragging');
-        dragHandleEl.addEventListener('mousemove', dragMove);
+    function setupZIndex(box) {
+        box.addEventListener('mousedown', () => {
+            document.querySelectorAll('.box').forEach(b => b.style.zIndex = 0);
+            box.style.zIndex = 10;
+        });
     }
 
-    function dragMove(event) {
-        const dragElRect = dragEl.getBoundingClientRect();
-        const newLeft = dragElRect.left + event.clientX - lastPosition.left;
-        const newTop = dragElRect.top + event.clientY - lastPosition.top;
-        dragEl.style.setProperty('left', `${newLeft}px`);
-        dragEl.style.setProperty('top', `${newTop}px`);
-        lastPosition.left = event.clientX;
-        lastPosition.top = event.clientY;
-        window.getSelection().removeAllRanges();
-        updatePlotSize();
+    function updatePlotSize(box) {
+        const plotDiv = box.querySelector('.chart');
+        if (plotDiv) {
+            Plotly.Plots.resize(plotDiv);
+        }
     }
 
-    function updatePlotSize() {
-        Plotly.Plots.resize(plotDiv);
-    }
-
-    function getDraggableAncestor(element) {
-        if (element.getAttribute('data-draggable')) return element;
-        return getDraggableAncestor(element.parentElement);
-    }
-
-    function dragEnd() {
-        dragHandleEl.classList.remove('dragging');
-        dragHandleEl.removeEventListener('mousemove', dragMove);
-        dragEl = null;
-    }
+    // Add initial box on load
+    addNewBox();
 </script>
 </body>
 </html>

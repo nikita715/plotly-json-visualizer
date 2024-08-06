@@ -130,8 +130,8 @@
                     <label for="json-input">JSON Data:</label><br>
                     <textarea class="json-input form-control" rows="10"></textarea><br>
                     <button class="btn btn-beautify">Beautify JSON</button><br><br>
-                    <label for="json-path">JSON Path (optional):</label><br>
-                    <input type="text" class="json-path form-control" placeholder="e.g., data.chart"><br>
+                    <label for="json-path-json">JSON Path (optional):</label><br>
+                    <input type="text" class="json-path-json form-control" placeholder="e.g., data.chart"><br>
                 </div>
                 <div class="view-http hidden">
                     <form id="requestForm">
@@ -149,6 +149,10 @@
                         <div class="bodyContainer">
                             <label for="body">Body</label><br>
                             <textarea class="http-body form-control" placeholder='{"key1": "value1", "key2": "value2"}'></textarea><br>
+                        </div>
+                        <div class="jsonPathContainer">
+                            <label for="json-path-http">JSON Path (optional):</label><br>
+                            <input type="text" class="json-path-http form-control" placeholder="e.g., data.chart"><br>
                         </div>
                     </form>
                 </div>
@@ -227,7 +231,7 @@
         try {
             if (inputType === 'json') {
                 const jsonData = box.querySelector('.json-input').value;
-                const jsonPath = box.querySelector('.json-path').value;
+                const jsonPath = box.querySelector('.json-path-json').value;
                 plotData = JSON.parse(jsonData);
                 if (jsonPath) {
                     const pathParts = jsonPath.split('.');
@@ -254,7 +258,7 @@
                     body: method === 'POST' ? body : null
                 });
                 const jsonData = await response.json();
-                const jsonPath = box.querySelector('.json-path').value;
+                const jsonPath = box.querySelector('.json-path-http').value;
                 plotData = jsonData;
                 if (jsonPath) {
                     const pathParts = jsonPath.split('.');

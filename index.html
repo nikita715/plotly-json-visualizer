@@ -3,20 +3,59 @@
 <head>
     <meta charset="UTF-8">
     <title>Plotly</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
     <script src="https://cdn.plot.ly/plotly-2.32.0.min.js"></script>
+    <style>
+        body {
+            display: flex;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+        }
+        #sidebar {
+            width: 300px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            overflow-y: auto;
+            flex-shrink: 0;
+        }
+        #div-plotly {
+            flex-grow: 1;
+            padding: 15px;
+            overflow: auto;
+            min-width: 200px;
+            min-height: 300px;
+        }
+        .resizer {
+            width: 10px;
+            background: #ddd;
+            cursor: ew-resize;
+            position: relative;
+            z-index: 1;
+        }
+        .resizer:hover {
+            background: #bbb;
+        }
+    </style>
 </head>
 <body>
-<h1>Plotly json visualizer</h1>
-<div id="div-plotly"></div>
-<div>
-    <label for="json-input">JSON Data:</label><br>
-    <textarea id="json-input" rows="10" cols="50"></textarea><br>
-    <label for="json-path">JSON Path (optional):</label><br>
-    <input type="text" id="json-path" placeholder="e.g., data.chart"><br><br>
-    <button onclick="reloadPlot()">Reload Plot</button>
+<div id="sidebar">
+    <h1>Plotly JSON Visualizer</h1>
+    <div>
+        <label for="json-input">JSON Data:</label><br>
+        <textarea id="json-input" class="form-control" rows="10"></textarea><br>
+        <label for="json-path">JSON Path (optional):</label><br>
+        <input type="text" id="json-path" class="form-control" placeholder="e.g., data.chart"><br><br>
+        <button onclick="reloadPlot()" class="btn btn-success">Reload Plot</button>
+    </div>
 </div>
-<script>
+<div class="resizer" id="left-resizer"></div>
+<div id="div-plotly"></div>
 
+<script>
     function reloadPlot() {
         const jsonData = document.getElementById('json-input').value;
         const jsonPath = document.getElementById('json-path').value;
@@ -38,6 +77,50 @@
         }
     }
 
+    // Event listener to redraw the plot when the div is resized
+    const resizeObserver = new ResizeObserver(() => {
+        const jsonData = document.getElementById('json-input').value;
+        if (jsonData.trim() !== "") {
+            reloadPlot();
+        }
+    });
+
+    resizeObserver.observe(document.getElementById('div-plotly'));
+
+    // Functionality for dragging resizers
+    const leftResizer = document.getElementById('left-resizer');
+    const sidebar = document.getElementById('sidebar');
+    const plotlyContainer = document.getElementById('div-plotly');
+
+    function initResizer(resizer, sidePanel) {
+        let x = 0;
+        let w = 0;
+
+        const mouseDownHandler = function(e) {
+            x = e.clientX;
+            w = sidePanel.offsetWidth;
+
+            document.addEventListener('mousemove', mouseMoveHandler);
+            document.addEventListener('mouseup', mouseUpHandler);
+        };
+
+        const mouseMoveHandler = function(e) {
+            const dx = e.clientX - x;
+            const newWidth = w + dx;
+            if (newWidth >= 200 && newWidth <= window.innerWidth - 300) {  // Adjust min and max width as needed
+                sidePanel.style.width = `${newWidth}px`;
+            }
+        };
+
+        const mouseUpHandler = function() {
+            document.removeEventListener('mousemove', mouseMoveHandler);
+            document.removeEventListener('mouseup', mouseUpHandler);
+        };
+
+        resizer.addEventListener('mousedown', mouseDownHandler);
+    }
+
+    initResizer(leftResizer, sidebar);
 </script>
 </body>
 </html>

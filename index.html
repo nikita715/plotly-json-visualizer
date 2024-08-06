@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Plotly</title>
+    <script src="https://cdn.plot.ly/plotly-2.32.0.min.js"></script>
+</head>
+<body>
+<h1>Plotly json visualizer</h1>
+<div id="div-plotly"></div>
+<div>
+    <label for="json-input">JSON Data:</label><br>
+    <textarea id="json-input" rows="10" cols="50"></textarea><br>
+    <label for="json-path">JSON Path (optional):</label><br>
+    <input type="text" id="json-path" placeholder="e.g., data.chart"><br><br>
+    <button onclick="reloadPlot()">Reload Plot</button>
+</div>
+<script>
+
+    function reloadPlot() {
+        const jsonData = document.getElementById('json-input').value;
+        const jsonPath = document.getElementById('json-path').value;
+
+        try {
+            let plotData = JSON.parse(jsonData);
+
+            if (jsonPath) {
+                const pathParts = jsonPath.split('.');
+                for (const part of pathParts) {
+                    plotData = plotData[part];
+                }
+            }
+
+            Plotly.newPlot(document.getElementById('div-plotly'), plotData);
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Invalid JSON data or JSON path');
+        }
+    }
+
+</script>
+</body>
+</html>

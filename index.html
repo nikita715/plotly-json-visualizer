@@ -17,8 +17,8 @@
         }
 
         .box {
-            width: 300px;
-            height: 300px;
+            width: 600px;
+            height: 600px;
             background-color: #fff;
             border: 1px solid lightblue;
             border-radius: 5px;
@@ -33,13 +33,15 @@
 
         .box-header {
             color: #fff;
+            background-color: white;
             padding: 5px 10px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            cursor: pointer;
             height: 40px;
             flex-shrink: 0;
+            position: relative;
+            cursor: move;
         }
 
         .header-buttons {
@@ -72,12 +74,11 @@
             top: 10px;
             left: 10px;
             cursor: pointer;
-            z-index: 1000;
-            color: lightblue;
+            color: lightsteelblue;
         }
 
         #add-box-btn:hover {
-            color: lightskyblue;
+            color: lightblue;
         }
 
         #overlay-text {
@@ -88,7 +89,11 @@
             font-size: 24px;
             color: rgba(0, 0, 0, 0.5);
             pointer-events: none;
-            z-index: -1000;
+            z-index: 1000;
+        }
+
+        .hidden {
+            display: none;
         }
     </style>
 </head>
@@ -97,26 +102,55 @@
 <div id="overlay-text">Plotly JSON Visualizer</div>
 
 <script>
+    let highestZIndex = 1000;
+
     document.getElementById('add-box-btn').addEventListener('click', addNewBox);
 
     function addNewBox() {
         const box = document.createElement('div');
         box.className = 'box';
+        box.style.zIndex = ++highestZIndex;
         box.innerHTML = `
             <div class="box-header" data-drag-handle="true">
                 <div class="header-buttons">
-                    <button class="btn btn-generate">Generate</button>
                     <button class="btn btn-back" style="display:none;">Back</button>
+                    <button class="btn btn-generate">Generate</button>
                 </div>
                 <span class="btn btn-close">X</span>
             </div>
             <div class="box-body">
+                <div class="view-input-type">
+                    <label for="input-type">Input Type:</label>
+                    <select id="input-type" class="form-control">
+                        <option value="json">JSON Text</option>
+                        <option value="http">HTTP Request</option>
+                    </select><br>
+                </div>
                 <div class="view-json">
                     <label for="json-input">JSON Data:</label><br>
                     <textarea class="json-input form-control" rows="10"></textarea><br>
                     <button class="btn btn-beautify">Beautify JSON</button><br><br>
                     <label for="json-path">JSON Path (optional):</label><br>
-                    <input type="text" class="json-path form-control" placeholder="e.g., data.chart"><br><br>
+                    <input type="text" class="json-path form-control" placeholder="e.g., data.chart"><br>
+                </div>
+                <div class="view-http hidden">
+                    <form id="requestForm">
+                        <label for="url">URL:</label>
+                        <input type="text" class="http-url form-control" required><br>
+                        <label for="method">HTTP Method:</label>
+                        <select class="http-method form-control">
+                            <option value="GET">GET</option>
+                            <option value="POST">POST</option>
+                        </select><br>
+                        <div class="paramsContainer">
+                            <label for="params">Query Parameters</label><br>
+                            <textarea class="http-params form-control" placeholder="key1=value1&key2=value2"></textarea><br>
+                        </div>
+                        <div class="bodyContainer">
+                            <label for="body">Body</label><br>
+                            <textarea class="http-body form-control" placeholder='{"key1": "value1", "key2": "value2"}'></textarea><br>
+                        </div>
+                    </form>
                 </div>
                 <div class="view-chart" style="display:none;">
                     <div class="chart" style="width: 100%; height: 100%;"></div>
@@ -133,42 +167,100 @@
         box.querySelector('.btn-back').addEventListener('click', () => switchToJson(box));
         box.querySelector('.btn-close').addEventListener('click', () => box.remove());
         box.querySelector('.btn-beautify').addEventListener('click', () => beautifyJson(box));
+
+        box.querySelector('#input-type').addEventListener('change', (event) => switchInputType(box, event.target.value));
+    }
+
+    function switchInputType(box, type) {
+        const viewJson = box.querySelector('.view-json');
+        const viewHttp = box.querySelector('.view-http');
+        if (type === 'json') {
+            viewJson.style.display = 'block';
+            viewHttp.style.display = 'none';
+        } else {
+            viewJson.style.display = 'none';
+            viewHttp.style.display = 'block';
+        }
     }
 
     function switchToChart(box) {
         const viewJson = box.querySelector('.view-json');
+        const viewHttp = box.querySelector('.view-http');
         const viewChart = box.querySelector('.view-chart');
         const btnGenerate = box.querySelector('.btn-generate');
         const btnBack = box.querySelector('.btn-back');
+        const viewInputType = box.querySelector('.view-input-type');
         viewJson.style.display = 'none';
+        viewHttp.style.display = 'none';
         viewChart.style.display = 'block';
-        btnGenerate.style.display = 'none';
+        btnGenerate.textContent = 'Reload';
         btnBack.style.display = 'block';
+        viewInputType.style.display = 'none';
         updatePlotSize(box);
     }
 
     function switchToJson(box) {
+        const inputType = box.querySelector('#input-type').value;
         const viewJson = box.querySelector('.view-json');
+        const viewHttp = box.querySelector('.view-http');
         const viewChart = box.querySelector('.view-chart');
         const btnGenerate = box.querySelector('.btn-generate');
         const btnBack = box.querySelector('.btn-back');
-        viewJson.style.display = 'block';
+        const viewInputType = box.querySelector('.view-input-type');
         viewChart.style.display = 'none';
-        btnGenerate.style.display = 'block';
+        btnGenerate.textContent = 'Generate';
+        viewInputType.style.display = 'block';
         btnBack.style.display = 'none';
+        if (inputType === 'json') {
+            viewJson.style.display = 'block';
+            viewHttp.style.display = 'none';
+        } else {
+            viewJson.style.display = 'none';
+            viewHttp.style.display = 'block';
+        }
     }
 
-    function reloadPlot(box) {
-        const jsonData = box.querySelector('.json-input').value;
-        const jsonPath = box.querySelector('.json-path').value;
+    async function reloadPlot(box) {
+        const inputType = box.querySelector('#input-type').value;
+        let plotData;
 
         try {
-            let plotData = JSON.parse(jsonData);
+            if (inputType === 'json') {
+                const jsonData = box.querySelector('.json-input').value;
+                const jsonPath = box.querySelector('.json-path').value;
+                plotData = JSON.parse(jsonData);
+                if (jsonPath) {
+                    const pathParts = jsonPath.split('.');
+                    for (const part of pathParts) {
+                        plotData = plotData[part];
+                    }
+                }
+            } else {
+                const url = box.querySelector('.http-url').value;
+                const method = box.querySelector('.http-method').value;
+                const params = box.querySelector('.http-params').value;
+                const body = box.querySelector('.http-body').value;
 
-            if (jsonPath) {
-                const pathParts = jsonPath.split('.');
-                for (const part of pathParts) {
-                    plotData = plotData[part];
+                let fullUrl = url;
+                if (method === 'GET' && params) {
+                    fullUrl += '?' + params;
+                }
+
+                const response = await fetch(fullUrl, {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: method === 'POST' ? body : null
+                });
+                const jsonData = await response.json();
+                const jsonPath = box.querySelector('.json-path').value;
+                plotData = jsonData;
+                if (jsonPath) {
+                    const pathParts = jsonPath.split('.');
+                    for (const part of pathParts) {
+                        plotData = plotData[part];
+                    }
                 }
             }
 
@@ -187,7 +279,7 @@
             switchToChart(box);  // Switch to chart view immediately after generating the plot
         } catch (error) {
             console.error('Error:', error);
-            alert('Invalid JSON data or JSON path');
+            alert('Invalid JSON data or HTTP request');
         }
     }
 
@@ -214,6 +306,7 @@
         function dragStart(event) {
             dragEl = box;
             dragEl.style.setProperty('position', 'absolute');
+            dragEl.style.setProperty('z-index', ++highestZIndex); // Bring to front on drag
             lastPosition.left = event.clientX;
             lastPosition.top = event.clientY;
             dragHandleEl.classList.add('dragging');
@@ -250,8 +343,7 @@
 
     function setupZIndex(box) {
         box.addEventListener('mousedown', () => {
-            document.querySelectorAll('.box').forEach(b => b.style.zIndex = 0);
-            box.style.zIndex = 10;
+            box.style.zIndex = ++highestZIndex;
         });
     }
 

@@ -17,12 +17,12 @@
         }
 
         .box {
-            width: 600px;
+            width: 700px;
             height: 600px;
             background-color: #fff;
             border: 1px solid lightblue;
             border-radius: 5px;
-            box-shadow: 0 15px 15px lightgrey;
+            box-shadow: 0 0 15px darkgrey;
             position: absolute;
             top: 50px;
             left: 50px;
@@ -59,10 +59,11 @@
 
         .btn {
             border: 1px solid #ccc;
-            padding: 5px 10px;
+            padding: 3px 6px;  /* Adjusted padding for smaller buttons */
             background-color: white;
             cursor: pointer;
             flex-shrink: 0;
+            font-size: 15px;  /* Adjusted font size for smaller buttons */
         }
 
         .btn:hover {
@@ -103,6 +104,8 @@
 
 <script>
     let highestZIndex = 1000;
+
+    const jsonExample = "{\r\n    \"data\": [\r\n        {\r\n            \"x\": [\r\n                \"giraffes\",\r\n                \"orangutans\",\r\n                \"monkeys\"\r\n            ],\r\n            \"y\": [\r\n                20,\r\n                14,\r\n                23\r\n            ],\r\n            \"type\": \"bar\"\r\n        }\r\n    ]\r\n}";
 
     document.getElementById('add-box-btn').addEventListener('click', addNewBox);
 
@@ -173,6 +176,8 @@
         box.querySelector('.btn-beautify').addEventListener('click', () => beautifyJson(box));
 
         box.querySelector('#input-type').addEventListener('change', (event) => switchInputType(box, event.target.value));
+
+        box.querySelector('.json-input').value = jsonExample;
     }
 
     function switchInputType(box, type) {

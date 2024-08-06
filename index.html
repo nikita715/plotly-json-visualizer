@@ -15,6 +15,7 @@
             overflow: hidden;
             font-family: Arial, sans-serif;
         }
+
         #sidebar {
             width: 300px;
             padding: 15px;
@@ -22,22 +23,30 @@
             overflow-y: auto;
             flex-shrink: 0;
         }
-        #div-plotly {
-            flex-grow: 1;
-            padding: 15px;
-            overflow: auto;
-            min-width: 200px;
-            min-height: 300px;
+
+        .box {
+            width: 300px;
+            height: 200px;
+            background-color: #fff;
+            border: 1px solid dodgerblue;
+            border-radius: 5px;
+            box-shadow: 0 15px 15px lightgrey;
         }
-        .resizer {
-            width: 10px;
-            background: #ddd;
-            cursor: ew-resize;
-            position: relative;
-            z-index: 1;
+
+        .box-header {
+            color: #fff;
+            background-color: dodgerblue;
+            padding: 10px 15px;
         }
-        .resizer:hover {
-            background: #bbb;
+
+        .drag-handle {
+            cursor: pointer;
+        }
+
+        .box-header {
+            color: #fff;
+            background-color: dodgerblue;
+            padding: 5px 10px;
         }
     </style>
 </head>
@@ -52,10 +61,14 @@
         <button onclick="reloadPlot()" class="btn btn-success">Reload Plot</button>
     </div>
 </div>
-<div class="resizer" id="left-resizer"></div>
-<div id="div-plotly"></div>
+<div class="box" data-draggable="true" data-resizable="true">
+    <div class="box-header drag-handle" data-drag-handle="true">Drag here</div>
+    <div class="box-body" id="div-plotly"></div>
+</div>
 
 <script>
+    const plotDiv = document.getElementById('div-plotly');
+
     function reloadPlot() {
         const jsonData = document.getElementById('json-input').value;
         const jsonPath = document.getElementById('json-path').value;
@@ -70,57 +83,80 @@
                 }
             }
 
-            Plotly.newPlot(document.getElementById('div-plotly'), plotData);
+            var layout = {
+                title: 'Responsive Plotly.js Chart',
+                autosize: true
+            };
+
+            var config = {
+                responsive: true
+            };
+
+            Plotly.newPlot(plotDiv, plotData, layout, config);
         } catch (error) {
             console.error('Error:', error);
             alert('Invalid JSON data or JSON path');
         }
     }
 
-    // Event listener to redraw the plot when the div is resized
-    const resizeObserver = new ResizeObserver(() => {
-        const jsonData = document.getElementById('json-input').value;
-        if (jsonData.trim() !== "") {
-            reloadPlot();
-        }
-    });
+    let dragEl;
+    let dragHandleEl
+    const lastPosition = {};
 
-    resizeObserver.observe(document.getElementById('div-plotly'));
+    setupResizable();
+    setupDraggable();
 
-    // Functionality for dragging resizers
-    const leftResizer = document.getElementById('left-resizer');
-    const sidebar = document.getElementById('sidebar');
-    const plotlyContainer = document.getElementById('div-plotly');
-
-    function initResizer(resizer, sidePanel) {
-        let x = 0;
-        let w = 0;
-
-        const mouseDownHandler = function(e) {
-            x = e.clientX;
-            w = sidePanel.offsetWidth;
-
-            document.addEventListener('mousemove', mouseMoveHandler);
-            document.addEventListener('mouseup', mouseUpHandler);
-        };
-
-        const mouseMoveHandler = function(e) {
-            const dx = e.clientX - x;
-            const newWidth = w + dx;
-            if (newWidth >= 200 && newWidth <= window.innerWidth - 300) {  // Adjust min and max width as needed
-                sidePanel.style.width = `${newWidth}px`;
-            }
-        };
-
-        const mouseUpHandler = function() {
-            document.removeEventListener('mousemove', mouseMoveHandler);
-            document.removeEventListener('mouseup', mouseUpHandler);
-        };
-
-        resizer.addEventListener('mousedown', mouseDownHandler);
+    function setupDraggable() {
+        dragHandleEl = document.querySelector('[data-drag-handle]');
+        dragHandleEl.addEventListener('mousedown', dragStart);
+        dragHandleEl.addEventListener('mouseup', dragEnd);
+        dragHandleEl.addEventListener('mouseout', dragEnd);
     }
 
-    initResizer(leftResizer, sidebar);
+    function setupResizable() {
+        const resizeEl = document.querySelector('[data-resizable]');
+        resizeEl.style.setProperty('resize', 'both');
+        resizeEl.style.setProperty('overflow', 'hidden');
+        new ResizeObserver(() => {
+            updatePlotSize();
+        }).observe(resizeEl);
+    }
+
+    function dragStart(event) {
+        dragEl = getDraggableAncestor(event.target);
+        dragEl.style.setProperty('position', 'absolute');
+        lastPosition.left = event.target.clientX;
+        lastPosition.top = event.target.clientY;
+        dragHandleEl.classList.add('dragging');
+        dragHandleEl.addEventListener('mousemove', dragMove);
+    }
+
+    function dragMove(event) {
+        const dragElRect = dragEl.getBoundingClientRect();
+        const newLeft = dragElRect.left + event.clientX - lastPosition.left;
+        const newTop = dragElRect.top + event.clientY - lastPosition.top;
+        dragEl.style.setProperty('left', `${newLeft}px`);
+        dragEl.style.setProperty('top', `${newTop}px`);
+        lastPosition.left = event.clientX;
+        lastPosition.top = event.clientY;
+        window.getSelection().removeAllRanges();
+        updatePlotSize();
+    }
+
+    function updatePlotSize() {
+        Plotly.Plots.resize(plotDiv);
+    }
+
+    function getDraggableAncestor(element) {
+        if (element.getAttribute('data-draggable')) return element;
+        return getDraggableAncestor(element.parentElement);
+    }
+
+    function dragEnd() {
+        dragHandleEl.classList.remove('dragging');
+        dragHandleEl.removeEventListener('mousemove', dragMove);
+        dragEl = null;
+    }
 </script>
 </body>
 </html>

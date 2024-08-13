@@ -100,6 +100,7 @@
             color: rgba(0, 0, 0, 0.5);
             pointer-events: none;
             z-index: 1000;
+            user-select: none;
         }
 
         .hidden {
@@ -120,6 +121,8 @@
 
         .view-chart {
             box-shadow: 0 0 15px darkgrey;
+            width: 100%;
+            height: 100%;
         }
 
         .github-link {
@@ -281,6 +284,7 @@
     }
 
     function switchToChart(box) {
+        const boxBody = box.querySelector('.box-body');
         const viewJson = box.querySelector('.view-json');
         const viewHttp = box.querySelector('.view-http');
         const viewChart = box.querySelector('.view-chart');
@@ -293,10 +297,12 @@
         btnGenerate.textContent = 'Reload';
         btnBack.style.display = 'block';
         viewInputType.style.display = 'none';
+        boxBody.style.padding = '30px';
         updatePlotSize(box);
     }
 
     function switchToJson(box) {
+        const boxBody = box.querySelector('.box-body');
         const inputType = box.querySelector('.input-type').value;
         const viewJson = box.querySelector('.view-json');
         const viewHttp = box.querySelector('.view-http');
@@ -315,6 +321,7 @@
             viewJson.style.display = 'none';
             viewHttp.style.display = 'block';
         }
+        boxBody.style.padding = '10px';
     }
 
     async function reloadPlot(box) {

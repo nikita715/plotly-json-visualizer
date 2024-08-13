@@ -2,11 +2,14 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta content="zpkJm8KWRDtbMaW0OX3DHdY1eYqJabj5V7ER9K0xKbA" name="google-site-verification"/>
     <title>Plotly</title>
     <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
     <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
     <script src="https://cdn.plot.ly/plotly-2.32.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/moveable@0.30.4/dist/moveable.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/moveable@0.30.4/dist/moveable.min.css" rel="stylesheet">
     <style>
         body {
             height: 100vh;
@@ -26,7 +29,7 @@
             position: absolute;
             top: 50px;
             left: 50px;
-            resize: both;
+            /*resize: both;*/
             overflow: hidden;
             z-index: 0;
         }
@@ -70,6 +73,10 @@
             background-color: #f0f0f0;
         }
 
+        .btn:active {
+            background-color: #e0e0e0;
+        }
+
         #add-box-btn {
             position: absolute;
             top: 10px;
@@ -96,12 +103,29 @@
         .hidden {
             display: none;
         }
+
+        .moveable-control {
+            opacity: 0;
+        }
+
+        .moveable-line {
+            opacity: 0;
+        }
+
+        .input-label-required {
+            font-weight: bold;
+        }
+
+        .view-chart {
+            box-shadow: 0 0 15px darkgrey;
+        }
     </style>
 </head>
 <body>
 <i id="add-box-btn" class="fas fa-plus-circle fa-2x"></i>
 <div id="overlay-text">Plotly JSON Visualizer</div>
 
+<script src="https://unpkg.com/moveable@latest/dist/moveable.min.js"></script>
 <script>
     let highestZIndex = 1000;
 
@@ -123,39 +147,39 @@
             </div>
             <div class="box-body">
                 <div class="view-input-type">
-                    <label for="input-type">Input Type:</label>
+                    <label for="input-type" class="input-label-required">Input Type:</label>
                     <select id="input-type" class="form-control">
                         <option value="json">JSON Text</option>
                         <option value="http">HTTP Request</option>
                     </select><br>
                 </div>
                 <div class="view-json">
-                    <label for="json-input">JSON Data:</label><br>
-                    <textarea class="json-input form-control" rows="10"></textarea><br>
+                    <label for="form-json-input" class="input-label-required">JSON Data:</label><br>
+                    <textarea id="form-json-input" class="json-input form-control" rows="10"></textarea><br>
                     <button class="btn btn-beautify">Beautify JSON</button><br><br>
-                    <label for="json-path-json">JSON Path (optional):</label><br>
-                    <input type="text" class="json-path-json form-control" placeholder="e.g., data.chart"><br>
+                    <label for="form-json-path">JSON Path</label><br>
+                    <input id="form-json-path" type="text" class="json-path-json form-control" placeholder="data.chart"><br>
                 </div>
                 <div class="view-http hidden">
                     <form id="requestForm">
-                        <label for="url">URL:</label>
-                        <input type="text" class="http-url form-control" required><br>
-                        <label for="method">HTTP Method:</label>
-                        <select class="http-method form-control">
+                        <label for="form-http-url" class="input-label-required">URL:</label>
+                        <input id="form-http-url" type="text" class="http-url form-control" required placeholder="http://localhost:8080/generate?key1=value1&key2=value2"><br>
+                        <label for="form-http-method" class="input-label-required">HTTP Method:</label>
+                        <select id="form-http-method" class="http-method form-control">
                             <option value="GET">GET</option>
                             <option value="POST">POST</option>
                         </select><br>
-                        <div class="paramsContainer">
-                            <label for="params">Query Parameters</label><br>
-                            <textarea class="http-params form-control" placeholder="key1=value1&key2=value2"></textarea><br>
+                        <div class="headersContainer">
+                            <label for="form-http-headers">Headers</label><br>
+                            <textarea id="form-http-headers" class="http-headers form-control" placeholder='Content-Type=application/json\nAccept=*/*'></textarea><br>
                         </div>
                         <div class="bodyContainer">
-                            <label for="body">Body</label><br>
-                            <textarea class="http-body form-control" placeholder='{"key1": "value1", "key2": "value2"}'></textarea><br>
+                            <label for="form-http-body">Body</label><br>
+                            <textarea id="form-http-body" class="http-body form-control" placeholder='{"key1": "value1", "key2": "value2"}'></textarea><br>
                         </div>
                         <div class="jsonPathContainer">
-                            <label for="json-path-http">JSON Path (optional):</label><br>
-                            <input type="text" class="json-path-http form-control" placeholder="e.g., data.chart"><br>
+                            <label for="form-http-json-path">JSON Path</label><br>
+                            <input id="form-http-json-path" type="text" class="json-path-http form-control" placeholder="data.chart"><br>
                         </div>
                     </form>
                 </div>
@@ -166,13 +190,57 @@
         `;
         document.body.appendChild(box);
 
-        setupDraggable(box);
-        setupResizable(box);
+        const headerEl = box.querySelector('[data-drag-handle]');
+
+        const moveable = new Moveable(document.body, {
+            target: box,
+            resizable: true,
+            keepRatio: false,
+            edge: true,
+            draggable: true,
+            checkInput: true,
+            checkSelect: true,
+        });
+
+        box.querySelector('#input-type').addEventListener("mousedown", (e) => {
+            e.stopPropagation();
+        });
+
+        box.querySelector('#form-http-method').addEventListener("mousedown", (e) => {
+            e.stopPropagation();
+        });
+
+        moveable.on("drag", ({target, left, top}) => {
+            target.style.left = `${left}px`;
+            target.style.top = `${top}px`;
+        });
+
+        moveable.on("resize", ({target, width, height, delta, direction}) => {
+            const minWidth = 100;
+            const minHeight = 200;
+
+            if (width >= minWidth && height >= minHeight) {
+                target.style.width = `${width}px`;
+                target.style.height = `${height}px`;
+
+                if (direction[0] === -1) {
+                    target.style.left = `${target.offsetLeft - delta[0]}px`;
+                }
+                if (direction[1] === -1) {
+                    target.style.top = `${target.offsetTop - delta[1]}px`;
+                }
+            }
+            updatePlotSize(box);
+        });
+
         setupZIndex(box);
 
         box.querySelector('.btn-generate').addEventListener('click', () => reloadPlot(box));
         box.querySelector('.btn-back').addEventListener('click', () => switchToJson(box));
-        box.querySelector('.btn-close').addEventListener('click', () => box.remove());
+        box.querySelector('.btn-close').addEventListener('click', () => {
+            moveable.destroy(); // Clean up movable instance
+            box.remove();
+        });
         box.querySelector('.btn-beautify').addEventListener('click', () => beautifyJson(box));
 
         box.querySelector('#input-type').addEventListener('change', (event) => switchInputType(box, event.target.value));
@@ -247,19 +315,14 @@
             } else {
                 const url = box.querySelector('.http-url').value;
                 const method = box.querySelector('.http-method').value;
-                const params = box.querySelector('.http-params').value;
+                const headers = box.querySelector('.http-headers').value;
                 const body = box.querySelector('.http-body').value;
 
-                let fullUrl = url;
-                if (method === 'GET' && params) {
-                    fullUrl += '?' + params;
-                }
+                let parsedHeaders = parseHeaders(headers);
 
-                const response = await fetch(fullUrl, {
+                const response = await fetch(url, {
                     method: method,
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
+                    headers: parsedHeaders,
                     body: method === 'POST' ? body : null
                 });
                 const jsonData = await response.json();
@@ -292,6 +355,20 @@
         }
     }
 
+    function parseHeaders(headerString) {
+        const headers = {};
+        const lines = headerString.split('\n'); // Split the string by new lines
+
+        lines.forEach(line => {
+            const [key, value] = line.split('='); // Split each line by '='
+            if (key && value) {
+                headers[key.trim()] = value.trim(); // Trim and add to headers object
+            }
+        });
+
+        return headers;
+    }
+
     function beautifyJson(box) {
         const jsonInput = box.querySelector('.json-input');
         try {
@@ -301,53 +378,6 @@
             console.error('Error:', error);
             alert('Invalid JSON data');
         }
-    }
-
-    function setupDraggable(box) {
-        const dragHandleEl = box.querySelector('[data-drag-handle]');
-        let dragEl;
-        let lastPosition = {};
-
-        dragHandleEl.addEventListener('mousedown', dragStart);
-        dragHandleEl.addEventListener('mouseup', dragEnd);
-        dragHandleEl.addEventListener('mouseout', dragEnd);
-
-        function dragStart(event) {
-            dragEl = box;
-            dragEl.style.setProperty('position', 'absolute');
-            dragEl.style.setProperty('z-index', ++highestZIndex); // Bring to front on drag
-            lastPosition.left = event.clientX;
-            lastPosition.top = event.clientY;
-            dragHandleEl.classList.add('dragging');
-            dragHandleEl.addEventListener('mousemove', dragMove);
-        }
-
-        function dragMove(event) {
-            const dragElRect = dragEl.getBoundingClientRect();
-            const newLeft = dragElRect.left + event.clientX - lastPosition.left;
-            const newTop = dragElRect.top + event.clientY - lastPosition.top;
-            dragEl.style.setProperty('left', `${newLeft}px`);
-            dragEl.style.setProperty('top', `${newTop}px`);
-            lastPosition.left = event.clientX;
-            lastPosition.top = event.clientY;
-            window.getSelection().removeAllRanges();
-            updatePlotSize(box);
-        }
-
-        function dragEnd() {
-            dragHandleEl.classList.remove('dragging');
-            dragHandleEl.removeEventListener('mousemove', dragMove);
-            dragEl = null;
-        }
-    }
-
-    function setupResizable(box) {
-        box.style.setProperty('resize', 'both');
-        box.style.setProperty('overflow', 'hidden');
-
-        new ResizeObserver(() => {
-            updatePlotSize(box);
-        }).observe(box);
     }
 
     function setupZIndex(box) {
@@ -363,7 +393,6 @@
         }
     }
 
-    // Add initial box on load
     addNewBox();
 </script>
 </body>

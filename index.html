@@ -146,6 +146,7 @@
 <script src="https://unpkg.com/moveable@latest/dist/moveable.min.js"></script>
 <script>
     let highestZIndex = 1000;
+    let boxIndex = 0;
 
     const jsonExample = "{\r\n    \"data\": [\r\n        {\r\n            \"x\": [\r\n                \"giraffes\",\r\n                \"orangutans\",\r\n                \"monkeys\"\r\n            ],\r\n            \"y\": [\r\n                20,\r\n                14,\r\n                23\r\n            ],\r\n            \"type\": \"bar\"\r\n        }\r\n    ]\r\n}";
 
@@ -155,6 +156,7 @@
         const box = document.createElement('div');
         box.className = 'box';
         box.style.zIndex = ++highestZIndex;
+        let currentBoxIndex = ++boxIndex;
         box.innerHTML = `
             <div class="box-header" data-drag-handle="true">
                 <div class="header-buttons">
@@ -165,39 +167,39 @@
             </div>
             <div class="box-body">
                 <div class="view-input-type">
-                    <label for="input-type" class="input-label-required">Input Type:</label>
-                    <select id="input-type" class="form-control">
+                    <label for="form-input-type-${currentBoxIndex}" class="input-label-required">Input Type</label>
+                    <select id="form-input-type-${currentBoxIndex}" class="form-control input-type">
                         <option value="json">JSON Text</option>
                         <option value="http">HTTP Request</option>
                     </select><br>
                 </div>
                 <div class="view-json">
-                    <label for="form-json-input" class="input-label-required">JSON Data:</label><br>
-                    <textarea id="form-json-input" class="json-input form-control" rows="10"></textarea><br>
+                    <label for="form-json-input-${currentBoxIndex}" class="input-label-required">JSON Data</label><br>
+                    <textarea id="form-json-input-${currentBoxIndex}" class="json-input form-control" rows="10"></textarea><br>
                     <button class="btn btn-beautify">Beautify JSON</button><br><br>
-                    <label for="form-json-path">JSON Path</label><br>
-                    <input id="form-json-path" type="text" class="json-path-json form-control" placeholder="data.chart"><br>
+                    <label for="form-json-path-${currentBoxIndex}">JSON Path</label><br>
+                    <input id="form-json-path-${currentBoxIndex}" type="text" class="json-path-json form-control" placeholder="data.chart"><br>
                 </div>
                 <div class="view-http hidden">
                     <form id="requestForm">
-                        <label for="form-http-url" class="input-label-required">URL:</label>
-                        <input id="form-http-url" type="text" class="http-url form-control" required placeholder="http://localhost:8080/generate?key1=value1&key2=value2"><br>
-                        <label for="form-http-method" class="input-label-required">HTTP Method:</label>
-                        <select id="form-http-method" class="http-method form-control">
+                        <label for="form-http-url-${currentBoxIndex}" class="input-label-required">URL</label>
+                        <input id="form-http-url-${currentBoxIndex}" type="text" class="http-url form-control" required placeholder="http://localhost:8080/generate?key1=value1&key2=value2"><br>
+                        <label for="form-http-method-${currentBoxIndex}" class="input-label-required">HTTP Method</label>
+                        <select id="form-http-method-${currentBoxIndex}" class="http-method form-control">
                             <option value="GET">GET</option>
                             <option value="POST">POST</option>
                         </select><br>
                         <div class="headersContainer">
-                            <label for="form-http-headers">Headers</label><br>
-                            <textarea id="form-http-headers" class="http-headers form-control" placeholder='Content-Type=application/json\nAccept=*/*'></textarea><br>
+                            <label for="form-http-headers-${currentBoxIndex}">Headers</label><br>
+                            <textarea id="form-http-headers-${currentBoxIndex}" class="http-headers form-control" placeholder='Content-Type=application/json\nAccept=*/*'></textarea><br>
                         </div>
                         <div class="bodyContainer">
-                            <label for="form-http-body">Body</label><br>
-                            <textarea id="form-http-body" class="http-body form-control" placeholder='{"key1": "value1", "key2": "value2"}'></textarea><br>
+                            <label for="form-http-body-${currentBoxIndex}">Body</label><br>
+                            <textarea id="form-http-body-${currentBoxIndex}" class="http-body form-control" placeholder='{"key1": "value1", "key2": "value2"}'></textarea><br>
                         </div>
                         <div class="jsonPathContainer">
-                            <label for="form-http-json-path">JSON Path</label><br>
-                            <input id="form-http-json-path" type="text" class="json-path-http form-control" placeholder="data.chart"><br>
+                            <label for="form-http-json-path-${currentBoxIndex}">JSON Path</label><br>
+                            <input id="form-http-json-path-${currentBoxIndex}" type="text" class="json-path-http form-control" placeholder="data.chart"><br>
                         </div>
                     </form>
                 </div>
@@ -208,23 +210,23 @@
         `;
         document.body.appendChild(box);
 
-        const headerEl = box.querySelector('[data-drag-handle]');
+        const dragHeader = box.querySelector('[data-drag-handle]');
 
         const moveable = new Moveable(document.body, {
             target: box,
+            dragTarget: dragHeader,
             resizable: true,
             keepRatio: false,
             edge: true,
             draggable: true,
             checkInput: true,
-            checkSelect: true,
         });
 
-        box.querySelector('#input-type').addEventListener("mousedown", (e) => {
+        box.querySelector('.input-type').addEventListener("mousedown", (e) => {
             e.stopPropagation();
         });
 
-        box.querySelector('#form-http-method').addEventListener("mousedown", (e) => {
+        box.querySelector('.http-method').addEventListener("mousedown", (e) => {
             e.stopPropagation();
         });
 
@@ -261,7 +263,7 @@
         });
         box.querySelector('.btn-beautify').addEventListener('click', () => beautifyJson(box));
 
-        box.querySelector('#input-type').addEventListener('change', (event) => switchInputType(box, event.target.value));
+        box.querySelector('.input-type').addEventListener('change', (event) => switchInputType(box, event.target.value));
 
         box.querySelector('.json-input').value = jsonExample;
     }
@@ -295,7 +297,7 @@
     }
 
     function switchToJson(box) {
-        const inputType = box.querySelector('#input-type').value;
+        const inputType = box.querySelector('.input-type').value;
         const viewJson = box.querySelector('.view-json');
         const viewHttp = box.querySelector('.view-http');
         const viewChart = box.querySelector('.view-chart');
@@ -316,7 +318,7 @@
     }
 
     async function reloadPlot(box) {
-        const inputType = box.querySelector('#input-type').value;
+        const inputType = box.querySelector('.input-type').value;
         let plotData;
 
         try {
@@ -369,7 +371,13 @@
             switchToChart(box);  // Switch to chart view immediately after generating the plot
         } catch (error) {
             console.error('Error:', error);
-            alert('Invalid JSON data or HTTP request');
+            const inputType = box.querySelector('.input-type').value;
+
+            if (inputType === 'json') {
+                alert('Invalid JSON data');
+            } else {
+                alert('Invalid HTTP request');
+            }
         }
     }
 
